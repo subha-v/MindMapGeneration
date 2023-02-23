@@ -18,7 +18,7 @@
 
 1. Install dependencies:
     ```bash
-    pip3 install top2vec
+    pip3 install hlda nltk sklearn
     ```
 
 1. Run script:
