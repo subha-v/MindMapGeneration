@@ -18,7 +18,7 @@
 
 1. Install dependencies:
     ```bash
-    pip3 install hlda nltk sklearn
+    pip3 install nltk sklearn matplotlib
     ```
 
 1. Run script:

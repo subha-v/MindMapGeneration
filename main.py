@@ -1,5 +1,7 @@
+import re
 import os
 from os.path import join, dirname
+
 import nltk
 from nltk.corpus import stopwords
 from sklearn.feature_extraction.text import TfidfVectorizer
@@ -8,19 +10,28 @@ from sklearn.neighbors import NearestNeighbors
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import numpy as np
-import re
 
-# download stopwords and punkt
-nltk.download('stopwords')
-nltk.download('punkt')
+def main():
+    # TODO check if the download already exists and only run these
+    # lines of code if so
+    # Download stopwords and punkt
+    nltk.download('stopwords')
+    nltk.download('punkt')
 
-folder_path = join(dirname(__file__), 'data', 'China')
-texts = []
-for filename in os.listdir(folder_path):
-    if filename.endswith('.txt'):
-        with open(join(folder_path, filename), 'r', encoding='utf-8') as f:
-            text = f.read()
-            texts.append(text)
+    folder_path = join(dirname(__file__), 'data', 'Sleep')
+    texts = []
+    for filename in os.listdir(folder_path):
+        if filename.endswith('.txt'):
+            with open(join(folder_path, filename), 'r', encoding='utf-8') as f:
+                text = f.read()
+                texts.append(text)
+
+    sw = set(stopwords.words("english"))
+    preprocessed_texts = [preprocess_text(text, sw) for text in texts]
+    '''
+    vectorizer = CountVectorizer()
+    X = vectorizer.fit_transform(preprocessed_texts)
+    '''
 
 def preprocess_text(text, stopwords):
     # remove non-alphabetic characters and lowercase the text
@@ -30,6 +41,5 @@ def preprocess_text(text, stopwords):
     filtered_tokens = [token for token in tokens if token not in stopwords]
     return " ".join(filtered_tokens)
 
-stopwords = set(stopwords.words("english"))
-preprocessed_texts = [preprocess_text(text, stopwords) for text in texts]
-
+if __name__ == '__main__':
+    main()
