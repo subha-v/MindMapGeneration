@@ -12,10 +12,9 @@ def main():
     # TODO check if the download already exists and only run these
     # lines of code if so
     # Download stopwords and punkt
-    nltk.download('stopwords')
-    nltk.download('punkt')
-
-    folder_path = join(dirname(__file__), 'data', 'Sleep')
+    # nltk.download('stopwords')
+    # nltk.download('punkt')
+    folder_path = join(dirname(__file__), 'data', 'China')
     for filename in os.listdir(folder_path):
         if filename.endswith('.txt'):
             with open(join(folder_path, filename), 'r', encoding='utf-8') as f:
@@ -34,23 +33,24 @@ def main():
                 ])
 
                 # Find closest words in corpus
-                kmeans = KMeans(n_clusters=2, random_state=0).fit(corpus_embeddings)
+                kmeans = KMeans(n_clusters=1, random_state=0).fit(corpus_embeddings)
                 centers = kmeans.cluster_centers_
+                print(centers.shape)
                 tree = KDTree(corpus_embeddings)
-                distances, indices = tree.query(centers, k=10)
+                distances, indices = tree.query(centers, k=4)
                 print("Words in text")
                 for sublist in indices:
                     print([words[i] for i in sublist])
 
                 # Find closest words among all embeddings
-                kmeans = KMeans(n_clusters=2, random_state=0).fit(all_embeddings)
-                centers = kmeans.cluster_centers_
-                tree = KDTree(all_embeddings)
-                distances, indices = tree.query(centers, k=10)
-                print("All words indicies", indices)
-                print("Words in all embeddings")
-                for sublist in indices:
-                    print([all_words[i] for i in sublist])
+                # kmeans = KMeans(n_clusters=2, random_state=0).fit(all_embeddings)
+                # centers = kmeans.cluster_centers_
+                # tree = KDTree(all_embeddings)
+                # distances, indices = tree.query(centers, k=10)
+                # print("All words indicies", indices)
+                # print("Words in all embeddings")
+                # for sublist in indices:
+                #     print([all_words[i] for i in sublist])
 
                 #breakpoint()
 
