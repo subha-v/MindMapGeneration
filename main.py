@@ -26,7 +26,9 @@ def main():
                 word_to_embedding = get_embeddings()
                 words = [word for word in words if word in word_to_embedding]
                 #breakpoint()
-                all_embeddings = np.array(word_to_embedding.values())
+                print("Word to embedding values", len(word_to_embedding.values()))
+                all_words = np.array(list(word_to_embedding.keys()))
+                all_embeddings = np.array(list(word_to_embedding.values()))
                 corpus_embeddings = np.array([
                     v for k, v in word_to_embedding.items() if k in words
                 ])
@@ -35,9 +37,7 @@ def main():
                 kmeans = KMeans(n_clusters=2, random_state=0).fit(corpus_embeddings)
                 centers = kmeans.cluster_centers_
                 tree = KDTree(corpus_embeddings)
-                print("Centers", centers)
                 distances, indices = tree.query(centers, k=10)
-                #print(indices)
                 print("Words in text")
                 for sublist in indices:
                     print([words[i] for i in sublist])
@@ -47,9 +47,10 @@ def main():
                 centers = kmeans.cluster_centers_
                 tree = KDTree(all_embeddings)
                 distances, indices = tree.query(centers, k=10)
+                print("All words indicies", indices)
                 print("Words in all embeddings")
                 for sublist in indices:
-                    print([words[i] for i in sublist])
+                    print([all_words[i] for i in sublist])
 
                 #breakpoint()
 
