@@ -9,6 +9,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 import re
 from sklearn.metrics.pairwise import cosine_similarity
+from collections import Counter
+import networkx as nx
+
 
 ### Getting the main topics
 
@@ -41,33 +44,27 @@ for text in texts:
     preprocessed_texts = [preprocess_text(text) for text in texts]
     preprocessed_texts.append(" ".join(filtered_tokens))
 
-vectorizer = CountVectorizer(token_pattern=r'(?u)\b\w+\b|\w+_+\w+')
+print(type(preprocessed_texts))
 
-X = vectorizer.fit_transform(preprocessed_texts)
+# GETTING MAIN TOPICS
 
-# perform k-means clustering on the transformed data
-num_clusters = 2  # choose the number of clusters to create
-km = KMeans(n_clusters=num_clusters)
-km.fit(X)
+preprocessed_string = preprocessed_texts[0]
 
-# assign each data point to a cluster
-cluster_assignments = km.labels_
-
-# determine the top words closest to the cluster center
-order_centroids = km.cluster_centers_.argsort()[:, ::-1]
-terms = list(vectorizer.vocabulary_.keys())
-print(terms)
-
-main_topics = []
-for i in range(num_clusters):
-    topic_words = []
-    for j in order_centroids[i, :1]:
-        topic_words.append(terms[j])
-    main_topics.append(' | '.join(topic_words))
+def top_4_words(text):
+    # Split the input string into a list of words
+    words = text.split()
     
-print('Main topics:')
-for i, topic in enumerate(main_topics):
-    print(f'Topic {i+1}: {topic}')
+    # Count the occurrences of each word in the list
+    word_counts = Counter(words)
+    
+    # Get the top 4 most common words and return them as a list
+    top_words = [word for word, count in word_counts.most_common(4)]
+    return top_words
+
+main_topics = top_4_words(preprocessed_string)
+print("Main topics", main_topics)
+
+# GETTING SUBTOPICS
 
 def load_glove_embeddings(embedding_file):
     embeddings = {}
@@ -114,4 +111,44 @@ def closest_subtopics(main_topics, corpus, embedding_file, num_top_words=5):
 
     return closest_words
 
-closest_subtopics(["china", "tang"], " ".join(preprocessed_texts), "glove/glove.6B.50d.txt")
+closest_word_array = closest_subtopics(main_topics, " ".join(preprocessed_texts), "glove/glove.6B.200d.txt")
+
+# FILTERING SUBTOPICS and MAINTOPICS
+
+def filter_subtopics(main_topics, subtopics):
+    # Filter out subtopics that are already in the list of main topics
+    filtered_subtopics = []
+    for subtopic_list in subtopics:
+        filtered_subtopics.append([subtopic for subtopic in subtopic_list if subtopic not in main_topics])
+    return filtered_subtopics
+
+filtered_subtopics = filter_subtopics(main_topics, closest_word_array)
+
+# GRAPH TOPICS
+
+def create_graph(main_topics, subtopics):
+    # Add main topics as blue nodes
+    G = nx.Graph()
+    for i, main_topic in enumerate(main_topics):
+        G.add_node(main_topic, color='blue')
+
+        # Add subtopics as pink nodes and connect them to their corresponding main topics
+        for subtopic in subtopics[i]:
+            G.add_node(subtopic, color='pink')
+            G.add_edge(main_topic, subtopic)
+    
+    node_colors = [node[1]['color'] for node in G.nodes(data=True)]
+    pos = nx.spring_layout(G, seed=42)
+    nx.draw_networkx_nodes(G, pos, node_color=node_colors)
+    nx.draw_networkx_edges(G, pos)
+    nx.draw_networkx_labels(G, pos)
+    plt.axis('off')
+    plt.show()
+    plt.savefig('graph.png')
+
+create_graph(main_topics, filtered_subtopics)
+
+
+
+
+

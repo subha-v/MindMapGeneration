@@ -45,7 +45,7 @@ def main():
 
 def get_embeddings():
     word_to_embedding = {}
-    with open(join(dirname(__file__), 'glove', 'glove.6B.50d.txt')) as f:
+    with open(join(dirname(__file__), 'glove', 'glove.6B.200d.txt')) as f:
         for line in f:
             values = line.split()
             word = values[0]
