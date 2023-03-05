@@ -25,7 +25,7 @@ def main():
                 words = get_unique_words(text, sw)
                 word_to_embedding = get_embeddings()
                 words = [word for word in words if word in word_to_embedding]
-                breakpoint()
+                #breakpoint()
                 all_embeddings = np.array(word_to_embedding.values())
                 corpus_embeddings = np.array([
                     v for k, v in word_to_embedding.items() if k in words
@@ -35,17 +35,23 @@ def main():
                 kmeans = KMeans(n_clusters=2, random_state=0).fit(corpus_embeddings)
                 centers = kmeans.cluster_centers_
                 tree = KDTree(corpus_embeddings)
+                print("Centers", centers)
                 distances, indices = tree.query(centers, k=10)
-                closest_corpus_words = [words[i] for i in indices]
+                #print(indices)
+                print("Words in text")
+                for sublist in indices:
+                    print([words[i] for i in sublist])
 
                 # Find closest words among all embeddings
                 kmeans = KMeans(n_clusters=2, random_state=0).fit(all_embeddings)
                 centers = kmeans.cluster_centers_
                 tree = KDTree(all_embeddings)
                 distances, indices = tree.query(centers, k=10)
-                closest_all_words = [words[i] for i in indices]
+                print("Words in all embeddings")
+                for sublist in indices:
+                    print([words[i] for i in sublist])
 
-                breakpoint()
+                #breakpoint()
 
 def get_embeddings():
     word_to_embedding = {}
