@@ -1,7 +1,6 @@
 import re
 import os
 from os.path import join, dirname
-
 import nltk
 from nltk.corpus import stopwords
 import numpy as np
@@ -10,10 +9,6 @@ from scipy.spatial import KDTree
 
 def main():
     # TODO check if the download already exists and only run these
-    # lines of code if so
-    # Download stopwords and punkt
-    # nltk.download('stopwords')
-    # nltk.download('punkt')
     folder_path = join(dirname(__file__), 'data', 'China')
     for filename in os.listdir(folder_path):
         if filename.endswith('.txt'):
@@ -42,17 +37,13 @@ def main():
                 for sublist in indices:
                     print([words[i] for i in sublist])
 
-                # Find closest words among all embeddings
-                # kmeans = KMeans(n_clusters=2, random_state=0).fit(all_embeddings)
-                # centers = kmeans.cluster_centers_
-                # tree = KDTree(all_embeddings)
-                # distances, indices = tree.query(centers, k=10)
-                # print("All words indicies", indices)
-                # print("Words in all embeddings")
-                # for sublist in indices:
-                #     print([all_words[i] for i in sublist])
-
-                #breakpoint()
+                # Find closest words in all embeddings
+                tree = KDTree(all_embeddings)
+                distances, indices = tree.query(centers, k=4)
+                print("All words indicies", indices)
+                print("Words in all embeddings")
+                for sublist in indices:
+                    print([all_words[i] for i in sublist])
 
 def get_embeddings():
     word_to_embedding = {}

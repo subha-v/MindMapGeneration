@@ -12,7 +12,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from collections import Counter
 import networkx as nx
 
-
 ### Getting the main topics
 
 # download stopwords and punkt
@@ -61,7 +60,26 @@ def top_4_words(text):
     top_words = [word for word, count in word_counts.most_common(4)]
     return top_words
 
-main_topics = top_4_words(preprocessed_string)
+def top_n_words_tfidf(text, n=4):
+    # Compute TF-IDF matrix for the input text
+    tfidf_vectorizer = TfidfVectorizer()
+    tfidf_matrix = tfidf_vectorizer.fit_transform([text])
+
+    # Get the vocabulary from the vectorizer
+    vocabulary = tfidf_vectorizer.vocabulary_
+
+    # Get the inverse vocabulary, which maps indices to words
+    inv_vocabulary = {v: k for k, v in vocabulary.items()}
+
+    # Get the indices of the top n words based on their TF-IDF scores
+    top_indices = np.argsort(tfidf_matrix.toarray()[0])[::-1][:n]
+
+    # Get the corresponding words and return them as a list
+    top_words = [inv_vocabulary[i] for i in top_indices]
+    return top_words
+
+# main_topics = top_4_words(preprocessed_string)
+main_topics = top_n_words_tfidf(preprocessed_string)
 print("Main topics", main_topics)
 
 # GETTING SUBTOPICS
@@ -126,27 +144,27 @@ filtered_subtopics = filter_subtopics(main_topics, closest_word_array)
 
 # GRAPH TOPICS
 
-def create_graph(main_topics, subtopics):
-    # Add main topics as blue nodes
-    G = nx.Graph()
-    for i, main_topic in enumerate(main_topics):
-        G.add_node(main_topic, color='blue')
+# def create_graph(main_topics, subtopics):
+#     # Add main topics as blue nodes
+#     G = nx.Graph()
+#     for i, main_topic in enumerate(main_topics):
+#         G.add_node(main_topic, color='blue')
 
-        # Add subtopics as pink nodes and connect them to their corresponding main topics
-        for subtopic in subtopics[i]:
-            G.add_node(subtopic, color='pink')
-            G.add_edge(main_topic, subtopic)
+#         # Add subtopics as pink nodes and connect them to their corresponding main topics
+#         for subtopic in subtopics[i]:
+#             G.add_node(subtopic, color='pink')
+#             G.add_edge(main_topic, subtopic)
     
-    node_colors = [node[1]['color'] for node in G.nodes(data=True)]
-    pos = nx.spring_layout(G, seed=42)
-    nx.draw_networkx_nodes(G, pos, node_color=node_colors)
-    nx.draw_networkx_edges(G, pos)
-    nx.draw_networkx_labels(G, pos)
-    plt.axis('off')
-    plt.show()
-    plt.savefig('graph.png')
+#     node_colors = [node[1]['color'] for node in G.nodes(data=True)]
+#     pos = nx.spring_layout(G, seed=42)
+#     nx.draw_networkx_nodes(G, pos, node_color=node_colors)
+#     nx.draw_networkx_edges(G, pos)
+#     nx.draw_networkx_labels(G, pos)
+#     plt.axis('off')
+#     plt.show()
+#     plt.savefig('graph.png')
 
-create_graph(main_topics, filtered_subtopics)
+# create_graph(main_topics, filtered_subtopics)
 
 
 
