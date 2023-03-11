@@ -8,6 +8,8 @@ from nltk.corpus import stopwords
 import numpy as np
 from sklearn.cluster import KMeans
 from scipy.spatial import KDTree
+import matplotlib.pyplot as plt
+from sklearn.manifold import TSNE
 
 # TODO Refactor code into functions so that you can easily run experiments
 
@@ -45,6 +47,9 @@ def main():
                 glove_embeddings = np.array([
                     gloveword_to_embedding[word] for word in glovewords
                 ])
+                
+                plot_embeddings(corpus_embeddings, corpuswords)
+                #plot_embeddings(glove_embeddings, glovewords)
 
                 # TODO Experiment with different cluster sizes and plot how
                 # good of a fit each has using matplotlib
@@ -76,17 +81,14 @@ def main():
                 print("Words in all embeddings")
                 for j, sublist in enumerate(indices):
                     print(f'Cluster {j}: {[glovewords[i] for i in sublist]}')
+                
 
-                # TODO look into t-SNE which is a way of plotting word vectors
-                # from original high dimenion (e.g. 50) to something that can
-                # be viewd (e.g. 2 dimension)
-                breakpoint()
 
 def get_embeddings():
     sw = set(stopwords.words("english"))
     word_to_embedding = {}
     # TODO play with different embeddings sizes
-    with open(join(dirname(__file__), 'glove', 'glove.6B.50d.txt')) as f:
+    with open(join(dirname(__file__), 'glove', 'glove.6B.200d.txt')) as f:
         for line in f:
             values = line.split()
             word = values[0]
@@ -103,6 +105,18 @@ def get_word_to_freq(text, stopwords):
     # tokenize the text and remove stopwords
     tokens = nltk.word_tokenize(text)
     return Counter(token for token in tokens if token not in stopwords)
+
+
+def plot_embeddings(embeddings, words):
+    tsne = TSNE(n_components=2, random_state=0)
+    embeddings_2d = tsne.fit_transform(embeddings)
+    fig, ax = plt.subplots(figsize=(16, 16))
+    for i, word in enumerate(words):
+        x, y = embeddings_2d[i, :]
+        ax.scatter(x, y, color='blue')
+        ax.annotate(word, xy=(x, y), xytext=(5, 2),
+                    textcoords='offset points', ha='right', va='bottom', fontsize=14)
+    plt.show()
 
 if __name__ == '__main__':
     main()
