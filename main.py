@@ -1,5 +1,4 @@
 import re
-import os
 from os.path import join, dirname
 from collections import Counter
 from nltk import pos_tag
@@ -10,104 +9,123 @@ from sklearn.cluster import KMeans
 from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
-from scipy.spatial.distance import cosine
-
-# TODO Refactor code into functions so that you can easily run experiments
 
 def main():
-    # lines of code if so
     # Download stopwords and punkt
-    # nltk.download('stopwords')
-    # nltk.download('punkt')
+    nltk.download('stopwords')
+    nltk.download('punkt')
+    nltk.download('averaged_perceptron_tagger')
 
-    folder_path = join(dirname(__file__), 'data', 'China')
-    for filename in os.listdir(folder_path):
-        if filename.endswith('.txt'):
-            with open(join(folder_path, filename), 'r', encoding='utf-8') as f:
-                text = f.read()
+    data_root_folder = join(dirname(__file__), 'data')
+    filenames = [
+        join(data_root_folder, 'China', 'china.txt'),
+    ]
+    # TODO experiment by looping over different parameters
+    for filename in filenames:
+        get_main_topics(
+            filename, n_clusters=2, embedding_size=50, norm_level=2
+        )
 
-                sw = set(stopwords.words("english"))
+def get_main_topics(filename, n_clusters, embedding_size, norm_level):
+    with open(filename, 'r', encoding='utf-8') as f:
+        text = f.read()
 
-                # Get words from corpus as well as embeddings
-                corpusword_to_freq = get_word_to_freq(text, sw)
-                gloveword_to_embedding = get_embeddings()
-                corpusword_to_freq = {
-                    word: freq for word, freq in corpusword_to_freq.items()
-                    if word in gloveword_to_embedding
-                }
+        sw = set(stopwords.words("english"))
 
-                corpuswords = sorted(corpusword_to_freq.keys())
-                glovewords = sorted(gloveword_to_embedding.keys())
+        # Get words from corpus as well as embeddings
+        corpusword_to_freq = get_word_to_freq(text, sw)
+        gloveword_to_embedding = get_embeddings(sw, embedding_size)
 
-                print('Number of unique words in corpus: ', len(corpuswords))
-                print('Number of word embeddings: ', len(gloveword_to_embedding))
+        # Filter out words in corpus that have no GloVe embedding
+        corpusword_to_freq = {
+            word: freq for word, freq in corpusword_to_freq.items()
+            if word in gloveword_to_embedding
+        }
 
-                corpus_embeddings = np.array([
-                    gloveword_to_embedding[word] for word in corpuswords
-                ])
-                glove_embeddings = np.array([
-                    gloveword_to_embedding[word] for word in glovewords
-                ])
+        corpuswords = sorted(corpusword_to_freq.keys())
+        glovewords = sorted(gloveword_to_embedding.keys())
 
-                plot_embeddings(corpus_embeddings, corpuswords)
-                #plot_embeddings(glove_embeddings, glovewords)
+        print('Number of unique words in corpus: ', len(corpuswords))
+        print('Number of word embeddings: ', len(gloveword_to_embedding))
 
-                # TODO Experiment with different cluster sizes and plot how
-                # good of a fit each has using matplotlib
-                # The x axis will be the number of clusters you used
-                # and the y axis will be the "goodness of fit".
-                # Use the `.inertia_`
-                kmeans = KMeans(n_clusters=2, random_state=0, n_init=10).fit(
-                    corpus_embeddings,
-                    sample_weight=np.array([
-                        corpusword_to_freq[word] for word in corpuswords
-                    ])
-                )
-                centers = kmeans.cluster_centers_
-                print(f'{centers.shape = }')
+        # Create matrices with each row corresponding to a word, with words
+        # sorted alphabetically
+        corpus_embeddings = np.array([
+            gloveword_to_embedding[word] for word in corpuswords
+        ])
+        glove_embeddings = np.array([
+            gloveword_to_embedding[word] for word in glovewords
+        ])
 
-                # TODO consider alternative metrics of similarity for the KDTree
-                # # Find closest words in corpus using euclidean distance
-                # tree = KDTree(corpus_embeddings)
-                # distances, indices = tree.query(centers, k=10)
-                # print("Words in corpus")
-                # for j, sublist in enumerate(indices):
-                #     print(f'Cluster {j}: {[corpuswords[i] for i in sublist]}')
+        # plot_embeddings(corpus_embeddings, corpuswords)
 
-                # # Find closest words among all embeddings using euclidean distance
-                # tree = KDTree(glove_embeddings)
-                # distances, indices = tree.query(centers, k=10)
-                # print("Words in all embeddings")
-                # for j, sublist in enumerate(indices):
-                #     print(f'Cluster {j}: {[glovewords[i] for i in sublist]}')
+        # TODO Experiment with different cluster sizes and plot how
+        # good of a fit each has using matplotlib
+        # The x axis will be the number of clusters you used
+        # and the y axis will be the "goodness of fit".
+        # Use the `.inertia_`
 
-                # Find closest words in corpus using cosine distance
-                # Find closest words in corpus
-                # Find closest words in corpus
-                tree = KDTree(corpus_embeddings, leafsize=10, metric='cosine')
-                distances, indices = tree.query(centers, k=10)
-                print("Words in corpus")
-                for j, sublist in enumerate(indices):
-                    print(f'Cluster {j}: {[corpuswords[i] for i in sublist]}')
+        # TODO make sure that 10 is a stable `n_init` value to use.
+        # If you increase it and notice that the cluster sizes change,
+        # then consider making this another experimental parameter to pass
+        # to this function
 
-                # Find closest words among all embeddings
-                tree = KDTree(glove_embeddings, leafsize=10, metric='cosine')
-                distances, indices = tree.query(centers, k=10)
-                print("Words in all embeddings")
-                for j, sublist in enumerate(indices):
-                    print(f'Cluster {j}: {[glovewords[i] for i in sublist]}')
-                
+        # Set up kmeans by weighting words by the number of times it appeared
+        # in the corpus
+        km = KMeans(n_clusters=n_clusters, random_state=0, n_init=10)
+        km.fit(
+            corpus_embeddings,
+            sample_weight=np.array([
+                corpusword_to_freq[word] for word in corpuswords
+            ])
+        )
+        centers = km.cluster_centers_
+        print(f'{centers.shape = }')
 
+        # Find closest words in corpus to the centers
+        closest_corpus_words = get_closest_words_to_centers(
+            corpuswords, corpus_embeddings, centers, norm_level
+        )
+        closest_glove_words = get_closest_words_to_centers(
+            glovewords, glove_embeddings, centers, norm_level
+        )
+        return closest_corpus_words, closest_glove_words, km.inertia_
 
-def get_embeddings():
-    sw = set(stopwords.words("english"))
+def get_closest_words_to_centers(words, vectors, centers, norm_level):
+    '''
+    word: a list of `N` words
+    vectors: array of `N` embeddings in `M` dimensions corresponding to words
+    centers: `M` dimensional points
+    norm_level: e.g. 1 if Manhattan distance, 2 if Euclidean, etc.
+    '''
+    tree = KDTree(vectors, p=norm_level)
+    _, indices = tree.query(centers, k=10)
+
+    # convert each element of `indices` into corresponding word
+    closest_words = [
+        [vectors[index] for index in cluster]
+        for cluster in indices
+    ]
+    print('Words in corpus')
+    for i, cluster in enumerate(closest_words):
+        print(f'Cluster {i}: {cluster}')
+    return closest_words
+
+def get_embeddings(sw, embedding_size=50):
+    valid_embedding_sizes = {50, 100, 200, 300}
+    if embedding_size not in valid_embedding_sizes:
+        raise ValueError(
+            f'The embeddings size {embedding_size} is not among the available '
+            f'sizes of {valid_embedding_sizes}'
+        )
+
     word_to_embedding = {}
-    # TODO play with different embeddings sizes
-    with open(join(dirname(__file__), 'glove', 'glove.6B.50d.txt')) as f:
+    with open(join(dirname(__file__), 'glove', f'glove.6B.{embedding_size}d.txt')) as f:
         for line in f:
             values = line.split()
             word = values[0]
             # Skip adding stopwords or words that are a part of speech that we want to ignore
+            # TODO skip words that are URLs or too long
             if word in sw or pos_tag([word])[0][1] in ('DT', 'PRP', 'PRP$', 'IN', 'CC', 'TO'):
                 continue
             coefs = np.asarray(values[1:], dtype='float32')
@@ -118,9 +136,9 @@ def get_word_to_freq(text, stopwords):
     # remove non-alphabetic characters and lowercase the text
     text = re.sub(r"[^a-z\s]", "", text.lower())
     # tokenize the text and remove stopwords
+    # TODO filter the corpus words with POS tagging
     tokens = nltk.word_tokenize(text)
     return Counter(token for token in tokens if token not in stopwords)
-
 
 def plot_embeddings(embeddings, words):
     tsne = TSNE(n_components=2, random_state=0)
