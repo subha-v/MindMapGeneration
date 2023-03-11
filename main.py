@@ -2,7 +2,7 @@ import re
 import os
 from os.path import join, dirname
 from collections import Counter
-
+from nltk import pos_tag
 import nltk
 from nltk.corpus import stopwords
 import numpy as np
@@ -12,7 +12,6 @@ from scipy.spatial import KDTree
 # TODO Refactor code into functions so that you can easily run experiments
 
 def main():
-    # TODO check if the download already exists and only run these
     # lines of code if so
     # Download stopwords and punkt
     # nltk.download('stopwords')
@@ -84,14 +83,16 @@ def main():
                 breakpoint()
 
 def get_embeddings():
+    sw = set(stopwords.words("english"))
     word_to_embedding = {}
     # TODO play with different embeddings sizes
     with open(join(dirname(__file__), 'glove', 'glove.6B.50d.txt')) as f:
         for line in f:
             values = line.split()
             word = values[0]
-            # TODO if the word is a part of speech that we want to ignore or a
-            # stopword then we should `continue`
+            # Skip adding stopwords or words that are a part of speech that we want to ignore
+            if word in sw or pos_tag([word])[0][1] in ('DT', 'PRP', 'PRP$', 'IN', 'CC', 'TO'):
+                continue
             coefs = np.asarray(values[1:], dtype='float32')
             word_to_embedding[word] = coefs
     return word_to_embedding
