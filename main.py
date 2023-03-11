@@ -103,12 +103,12 @@ def get_closest_words_to_centers(words, vectors, centers, norm_level):
 
     # convert each element of `indices` into corresponding word
     closest_words = [
-        [vectors[index] for index in cluster]
+        [words[index] for index in cluster]
         for cluster in indices
     ]
-    print('Words in corpus')
-    for i, cluster in enumerate(closest_words):
-        print(f'Cluster {i}: {cluster}')
+
+    print('Closest words to centers: ', closest_words)
+    
     return closest_words
 
 def get_embeddings(sw, embedding_size=50):
