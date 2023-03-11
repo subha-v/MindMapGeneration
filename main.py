@@ -10,6 +10,7 @@ from sklearn.cluster import KMeans
 from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+from scipy.spatial.distance import cosine
 
 # TODO Refactor code into functions so that you can easily run experiments
 
@@ -47,7 +48,7 @@ def main():
                 glove_embeddings = np.array([
                     gloveword_to_embedding[word] for word in glovewords
                 ])
-                
+
                 plot_embeddings(corpus_embeddings, corpuswords)
                 #plot_embeddings(glove_embeddings, glovewords)
 
@@ -66,17 +67,31 @@ def main():
                 print(f'{centers.shape = }')
 
                 # TODO consider alternative metrics of similarity for the KDTree
-                # (default is Euclidean)
+                # # Find closest words in corpus using euclidean distance
+                # tree = KDTree(corpus_embeddings)
+                # distances, indices = tree.query(centers, k=10)
+                # print("Words in corpus")
+                # for j, sublist in enumerate(indices):
+                #     print(f'Cluster {j}: {[corpuswords[i] for i in sublist]}')
 
+                # # Find closest words among all embeddings using euclidean distance
+                # tree = KDTree(glove_embeddings)
+                # distances, indices = tree.query(centers, k=10)
+                # print("Words in all embeddings")
+                # for j, sublist in enumerate(indices):
+                #     print(f'Cluster {j}: {[glovewords[i] for i in sublist]}')
+
+                # Find closest words in corpus using cosine distance
                 # Find closest words in corpus
-                tree = KDTree(corpus_embeddings)
+                # Find closest words in corpus
+                tree = KDTree(corpus_embeddings, leafsize=10, metric='cosine')
                 distances, indices = tree.query(centers, k=10)
                 print("Words in corpus")
                 for j, sublist in enumerate(indices):
                     print(f'Cluster {j}: {[corpuswords[i] for i in sublist]}')
 
                 # Find closest words among all embeddings
-                tree = KDTree(glove_embeddings)
+                tree = KDTree(glove_embeddings, leafsize=10, metric='cosine')
                 distances, indices = tree.query(centers, k=10)
                 print("Words in all embeddings")
                 for j, sublist in enumerate(indices):
@@ -88,7 +103,7 @@ def get_embeddings():
     sw = set(stopwords.words("english"))
     word_to_embedding = {}
     # TODO play with different embeddings sizes
-    with open(join(dirname(__file__), 'glove', 'glove.6B.200d.txt')) as f:
+    with open(join(dirname(__file__), 'glove', 'glove.6B.50d.txt')) as f:
         for line in f:
             values = line.split()
             word = values[0]
