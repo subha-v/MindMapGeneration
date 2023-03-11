@@ -98,8 +98,8 @@ def get_closest_words_to_centers(words, vectors, centers, norm_level):
     centers: `M` dimensional points
     norm_level: e.g. 1 if Manhattan distance, 2 if Euclidean, etc.
     '''
-    tree = KDTree(vectors, p=norm_level)
-    _, indices = tree.query(centers, k=10)
+    tree = KDTree(vectors)
+    _, indices = tree.query(centers, k=10, p=norm_level)
 
     # convert each element of `indices` into corresponding word
     closest_words = [
