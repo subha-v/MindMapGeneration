@@ -9,6 +9,7 @@ from sklearn.cluster import KMeans
 from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
+from sklearn.metrics.pairwise import cosine_similarity
 
 def main():
     # Download stopwords and punkt if necessary
@@ -20,14 +21,22 @@ def main():
     filenames = [
         join(data_root_folder, 'China', 'china.txt'), join(data_root_folder, 'EnvSci', 'envsci.txt')
     ]
+    # for filename in filenames:
+    #     for n_clusters in range(1, 5):
+    #         for embedding_size in [50, 100, 200, 300]:
+    #             for norm_level in [1, 2, 4, 6, 12]:
+    #                 get_main_topics(
+    #                     filename, n_clusters=n_clusters, embedding_size=embedding_size, norm_level=norm_level
+    #             )
+    #             print(f"Processed file {filename}: n_clusters={n_clusters}, embedding_size={embedding_size}, norm_level={norm_level}")
+
     for filename in filenames:
-        for n_clusters in range(1, 5):
-            for embedding_size in [50, 100, 200, 300]:
-                for norm_level in [1, 2, 4, 6, 12]:
-                    get_main_topics(
-                        filename, n_clusters=n_clusters, embedding_size=embedding_size, norm_level=norm_level
-                )
-                print(f"Processed file {filename}: n_clusters={n_clusters}, embedding_size={embedding_size}, norm_level={norm_level}")
+        corpus_main_topics, a, b = get_main_topics(
+            filename, n_clusters=2, embedding_size=50, norm_level=2
+        )
+        subtopics = get_closest_subtopics(corpus_main_topics, filename, embedding_size=50)
+        print(subtopics)
+
 
 def get_main_topics(filename, n_clusters, embedding_size, norm_level):
     with open(filename, 'r', encoding='utf-8') as f:
@@ -93,6 +102,56 @@ def get_main_topics(filename, n_clusters, embedding_size, norm_level):
             glovewords, glove_embeddings, centers, norm_level, False
         )
         return closest_corpus_words, closest_glove_words, km.inertia_
+
+def get_closest_subtopics(topic_list, filename, embedding_size):
+    with open(filename, 'r', encoding='utf-8') as f:
+        text = f.read()
+
+        sw = set(stopwords.words("english"))
+
+        # Get words from corpus as well as embeddings
+        corpusword_to_freq = get_word_to_freq(text, sw)
+        gloveword_to_embedding = get_embeddings(sw, embedding_size)
+
+        # Filter out words in corpus that have no GloVe embedding
+        corpusword_to_freq = {
+            word: freq for word, freq in corpusword_to_freq.items()
+            if word in gloveword_to_embedding
+        }
+
+        corpuswords = sorted(corpusword_to_freq.keys())
+        glovewords = sorted(gloveword_to_embedding.keys())
+
+        print('Number of unique words in corpus: ', len(corpuswords))
+        print('Number of word embeddings: ', len(gloveword_to_embedding))
+
+        # Create matrices with each row corresponding to a word, with words
+        # sorted alphabetically
+        corpus_embeddings = np.array([
+            gloveword_to_embedding[word] for word in corpuswords
+        ])
+        glove_embeddings = np.array([
+            gloveword_to_embedding[word] for word in glovewords
+        ])
+        similar_words = []
+        for sublist in topic_list:
+            similar_sublist = []
+            for word in sublist:
+                word_embedding = corpus_embeddings[corpuswords.index(word)].reshape(1, -1)
+                similarities = cosine_similarity(word_embedding, corpus_embeddings)[0]
+                closest_word_indices = np.argsort(similarities)[::-1][1:6] # exclude the word itself
+                closest_words = [corpuswords[i] for i in closest_word_indices]
+                similar_sublist.append(closest_words)
+            similar_words.append(similar_sublist)
+        return similar_words
+
+
+def filter_subtopics(main_topics, subtopics):
+    # Filter out subtopics that are already in the list of main topics
+    filtered_subtopics = []
+    for subtopic_list in subtopics:
+        filtered_subtopics.append([subtopic for subtopic in subtopic_list if subtopic not in main_topics])
+    return filtered_subtopics
 
 def get_closest_words_to_centers(words, vectors, centers, norm_level, is_corpus):
     '''
