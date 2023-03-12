@@ -10,6 +10,7 @@ from scipy.spatial import KDTree
 import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics import silhouette_score
 
 def main():
     # Download stopwords and punkt if necessary
@@ -18,7 +19,7 @@ def main():
     # nltk.download('averaged_perceptron_tagger')
 
     data_root_folder = join(dirname(__file__), 'data')
-    filename = join(data_root_folder, 'China', 'china.txt')
+    filename = join(data_root_folder, 'EnvSci', 'envsci.txt')
     
     # for filename in filenames:
     #     for n_clusters in range(1, 5):
@@ -28,9 +29,10 @@ def main():
     #                     filename, n_clusters=n_clusters, embedding_size=embedding_size, norm_level=norm_level
     #             )
     #             print(f"Processed file {filename}: n_clusters={n_clusters}, embedding_size={embedding_size}, norm_level={norm_level}")
-    #get_main_topics(filename, n_clusters=2, embedding_size=50, norm_level=6)
-    subtopics = get_closest_subtopics([['tang', 'flourished', 'dynasties', 'conquered']], filename, embedding_size=50)
-    print(subtopics)
+    
+    get_main_topics(filename, n_clusters=4, embedding_size=300, norm_level=6)
+    #subtopics = get_closest_subtopics([['forest', 'forests', 'pine', 'shade', 'covered', 'evaporating', 'regenerating']], filename, embedding_size=50)
+    #print(subtopics)
     #print(filter_subtopics(corpus_main_topics, subtopics))
 
 def get_main_topics(filename, n_clusters, embedding_size, norm_level):
@@ -132,14 +134,20 @@ def get_closest_subtopics(topic_list, filename, embedding_size):
         for sublist in topic_list:
             similar_sublist = []
             for word in sublist:
-                word_embedding = corpus_embeddings[corpuswords.index(word)].reshape(1, -1)
-                similarities = cosine_similarity(word_embedding, corpus_embeddings)[0]
-                closest_word_indices = np.argsort(similarities)[::-1][1:6] # exclude the word itself
-                closest_words = [corpuswords[i] for i in closest_word_indices]
-                similar_sublist.append(closest_words)
+                if word in corpuswords:
+                    word_embedding = corpus_embeddings[corpuswords.index(word)].reshape(1, -1)
+                    similarities = cosine_similarity(word_embedding, corpus_embeddings)[0]
+                    closest_word_indices = np.argsort(similarities)[::-1][1:6] # exclude the word itself
+                    closest_words = [corpuswords[i] for i in closest_word_indices]
+                    similar_sublist.append(closest_words)
+                else:
+                    word_embedding = glove_embeddings[glovewords.index(word)].reshape(1, -1)
+                    similarities = cosine_similarity(word_embedding, glove_embeddings)[0]
+                    closest_word_indices = np.argsort(similarities)[::-1][1:6] # exclude the word itself
+                    closest_words = [glovewords[i] for i in closest_word_indices]
+                    similar_sublist.append(closest_words)
             similar_words.append(similar_sublist)
         return similar_words
-
 
 def filter_subtopics(main_topics, subtopics):
     # Filter out subtopics that are already in the list of main topics
@@ -219,6 +227,21 @@ def plot_embeddings(embeddings, words):
         ax.annotate(word, xy=(x, y), xytext=(5, 2),
                     textcoords='offset points', ha='right', va='bottom', fontsize=14)
     plt.show()
+
+def compute_silhouette_score(embeddings, cluster_centers):
+    """
+    Computes the Silhouette coefficient for k-NN clustering given a vector of embeddings,
+    a list of cluster centers, and the number of clusters (k).
+    """
+    labels = []  # list of cluster labels for each data point
+    for emb in embeddings:
+        # compute the distance between the embedding and each cluster center
+        distances = [np.linalg.norm(emb - c) for c in cluster_centers]
+        # assign the embedding to the cluster with the nearest center
+        label = np.argmin(distances)
+        labels.append(label)
+    # compute the Silhouette coefficient for the clustering
+    return silhouette_score(embeddings, labels)
 
 if __name__ == '__main__':
     main()
