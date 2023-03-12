@@ -11,20 +11,23 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 
 def main():
-    # Download stopwords and punkt
-    nltk.download('stopwords')
-    nltk.download('punkt')
-    nltk.download('averaged_perceptron_tagger')
+    # Download stopwords and punkt if necessary
+    # nltk.download('stopwords')
+    # nltk.download('punkt')
+    # nltk.download('averaged_perceptron_tagger')
 
     data_root_folder = join(dirname(__file__), 'data')
     filenames = [
-        join(data_root_folder, 'China', 'china.txt'),
+        join(data_root_folder, 'China', 'china.txt'), join(data_root_folder, 'EnvSci', 'envsci.txt')
     ]
-    # TODO experiment by looping over different parameters
     for filename in filenames:
-        get_main_topics(
-            filename, n_clusters=2, embedding_size=50, norm_level=2
-        )
+        for n_clusters in range(1, 5):
+            for embedding_size in [50, 100, 200, 300]:
+                for norm_level in [1, 2, 4, 6, 12]:
+                    get_main_topics(
+                        filename, n_clusters=n_clusters, embedding_size=embedding_size, norm_level=norm_level
+                )
+                print(f"Processed file {filename}: n_clusters={n_clusters}, embedding_size={embedding_size}, norm_level={norm_level}")
 
 def get_main_topics(filename, n_clusters, embedding_size, norm_level):
     with open(filename, 'r', encoding='utf-8') as f:
@@ -84,32 +87,43 @@ def get_main_topics(filename, n_clusters, embedding_size, norm_level):
 
         # Find closest words in corpus to the centers
         closest_corpus_words = get_closest_words_to_centers(
-            corpuswords, corpus_embeddings, centers, norm_level
+            corpuswords, corpus_embeddings, centers, norm_level, True
         )
         closest_glove_words = get_closest_words_to_centers(
-            glovewords, glove_embeddings, centers, norm_level
+            glovewords, glove_embeddings, centers, norm_level, False
         )
         return closest_corpus_words, closest_glove_words, km.inertia_
 
-def get_closest_words_to_centers(words, vectors, centers, norm_level):
+def get_closest_words_to_centers(words, vectors, centers, norm_level, is_corpus):
     '''
     word: a list of `N` words
     vectors: array of `N` embeddings in `M` dimensions corresponding to words
     centers: `M` dimensional points
     norm_level: e.g. 1 if Manhattan distance, 2 if Euclidean, etc.
+    is_corpus: whether the text is from the corpus or from GloVe
     '''
     tree = KDTree(vectors)
-    _, indices = tree.query(centers, k=10, p=norm_level)
+    _, indices = tree.query(centers, k=4, p=norm_level)
 
     # convert each element of `indices` into corresponding word
     closest_words = [
         [words[index] for index in cluster]
         for cluster in indices
     ]
-
-    print('Closest words to centers: ', closest_words)
+    if(is_corpus==True):
+        print('corpus: ', closest_words)
+    else:
+        print('glove: ', closest_words)
     
     return closest_words
+
+def clean_word(word):
+    # remove any URLs in the word
+    word = re.sub(r'http\S+', '', word)
+    # remove any non-word characters from the beginning and end of the word
+    word = re.sub(r'^\W+|\W+$', '', word)
+    # remove any random strings of characters that are not words
+    return word
 
 def get_embeddings(sw, embedding_size=50):
     valid_embedding_sizes = {50, 100, 200, 300}
@@ -123,9 +137,10 @@ def get_embeddings(sw, embedding_size=50):
     with open(join(dirname(__file__), 'glove', f'glove.6B.{embedding_size}d.txt')) as f:
         for line in f:
             values = line.split()
-            word = values[0]
+            word = clean_word(values[0])
+            if word is None or any(char.isdigit() for char in word):
+                continue
             # Skip adding stopwords or words that are a part of speech that we want to ignore
-            # TODO skip words that are URLs or too long
             if word in sw or pos_tag([word])[0][1] in ('DT', 'PRP', 'PRP$', 'IN', 'CC', 'TO'):
                 continue
             coefs = np.asarray(values[1:], dtype='float32')
