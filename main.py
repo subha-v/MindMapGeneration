@@ -18,9 +18,8 @@ def main():
     # nltk.download('averaged_perceptron_tagger')
 
     data_root_folder = join(dirname(__file__), 'data')
-    filenames = [
-        join(data_root_folder, 'China', 'china.txt'), join(data_root_folder, 'EnvSci', 'envsci.txt')
-    ]
+    filename = join(data_root_folder, 'China', 'china.txt')
+    
     # for filename in filenames:
     #     for n_clusters in range(1, 5):
     #         for embedding_size in [50, 100, 200, 300]:
@@ -29,14 +28,10 @@ def main():
     #                     filename, n_clusters=n_clusters, embedding_size=embedding_size, norm_level=norm_level
     #             )
     #             print(f"Processed file {filename}: n_clusters={n_clusters}, embedding_size={embedding_size}, norm_level={norm_level}")
-
-    for filename in filenames:
-        corpus_main_topics, a, b = get_main_topics(
-            filename, n_clusters=2, embedding_size=50, norm_level=2
-        )
-        subtopics = get_closest_subtopics(corpus_main_topics, filename, embedding_size=50)
-        print(subtopics)
-
+    #get_main_topics(filename, n_clusters=2, embedding_size=50, norm_level=6)
+    subtopics = get_closest_subtopics([['tang', 'flourished', 'dynasties', 'conquered']], filename, embedding_size=50)
+    print(subtopics)
+    #print(filter_subtopics(corpus_main_topics, subtopics))
 
 def get_main_topics(filename, n_clusters, embedding_size, norm_level):
     with open(filename, 'r', encoding='utf-8') as f:

@@ -1,6 +1,8 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
+
+
 def filter_subtopics(main_topics, subtopics):
     # Filter out subtopics that are already in the list of main topics
     filtered_subtopics = []
@@ -23,7 +25,7 @@ def create_graph(main_topics, subtopics):
             G.add_edge(main_topic, subtopic)
     
     node_colors = [node[1]['color'] for node in G.nodes(data=True)]
-    pos = nx.spring_layout(G)
+    pos = nx.spring_layout(G, seed=42)  # Set a seed value for the random number generator
     nx.draw_networkx_nodes(G, pos, node_color=node_colors)
     nx.draw_networkx_edges(G, pos)
     nx.draw_networkx_labels(G, pos)
@@ -33,4 +35,5 @@ def create_graph(main_topics, subtopics):
     plt.show()
     plt.savefig('graph.png')
 
-create_graph(['tang', 'china', 'song', 'chinese'], filtered_subtopics)
+
+create_graph(['abundance', 'bog', 'shade', 'forest'], [['natural', 'vegetation', 'mineral', 'habitat', 'ecosystems'], ['bogs', 'pine', 'bark', 'vegetation', 'forests'], ['bright', 'sunlight', 'trees', 'cool', 'dark'], ['forests', 'habitat', 'woodland', 'wildlife', 'pine']])
