@@ -98,6 +98,7 @@ def get_main_topics(filename, n_clusters, embedding_size, norm_level):
         closest_glove_words = get_closest_words_to_centers(
             glovewords, glove_embeddings, centers, norm_level, False
         )
+
         return closest_corpus_words, closest_glove_words, km.inertia_
 
 def get_closest_subtopics(topic_list, filename, embedding_size):
@@ -165,7 +166,8 @@ def get_closest_words_to_centers(words, vectors, centers, norm_level, is_corpus)
     is_corpus: whether the text is from the corpus or from GloVe
     '''
     tree = KDTree(vectors)
-    _, indices = tree.query(centers, k=4, p=norm_level)
+    distances, indices = tree.query(centers, k=4, p=norm_level)
+    print("Distances", distances)
 
     # convert each element of `indices` into corresponding word
     closest_words = [
