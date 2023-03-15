@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 from sklearn.manifold import TSNE
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.metrics import silhouette_score
+import csv
+import itertools
 
 def main():
     # Download stopwords and punkt if necessary
@@ -19,21 +21,18 @@ def main():
     # nltk.download('averaged_perceptron_tagger')
 
     data_root_folder = join(dirname(__file__), 'data')
-    filename = join(data_root_folder, 'EnvSci', 'envsci.txt')
-    
-    # for filename in filenames:
-    #     for n_clusters in range(1, 5):
-    #         for embedding_size in [50, 100, 200, 300]:
-    #             for norm_level in [1, 2, 4, 6, 12]:
-    #                 get_main_topics(
-    #                     filename, n_clusters=n_clusters, embedding_size=embedding_size, norm_level=norm_level
-    #             )
-    #             print(f"Processed file {filename}: n_clusters={n_clusters}, embedding_size={embedding_size}, norm_level={norm_level}")
-    
-    get_main_topics(filename, n_clusters=4, embedding_size=300, norm_level=6)
-    #subtopics = get_closest_subtopics([['forest', 'forests', 'pine', 'shade', 'covered', 'evaporating', 'regenerating']], filename, embedding_size=50)
-    #print(subtopics)
-    #print(filter_subtopics(corpus_main_topics, subtopics))
+    filename = join(data_root_folder, 'China', 'china.txt')
+
+    norm_levels = [1,2,3,6,10,100,1000]
+    # with open('output.csv', mode='w') as csv_file:
+    #     fieldnames = ['norm_level', 'averaged_distance', 'km_inertia']
+    #     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    #     writer.writeheader()
+    for norm_level in norm_levels:
+        results = get_main_topics(filename, n_clusters=1, embedding_size=50, norm_level=norm_level)
+        # writer.writerow({'norm_level': norm_level, 'averaged_distance': results[0]})
+        print(f"Processed file {filename}: norm_level={norm_level}")
+        print({'norm_level': norm_level, 'averaged_distance': results})
 
 def get_main_topics(filename, n_clusters, embedding_size, norm_level):
     with open(filename, 'r', encoding='utf-8') as f:
@@ -62,22 +61,6 @@ def get_main_topics(filename, n_clusters, embedding_size, norm_level):
         corpus_embeddings = np.array([
             gloveword_to_embedding[word] for word in corpuswords
         ])
-        glove_embeddings = np.array([
-            gloveword_to_embedding[word] for word in glovewords
-        ])
-
-        # plot_embeddings(corpus_embeddings, corpuswords)
-
-        # TODO Experiment with different cluster sizes and plot how
-        # good of a fit each has using matplotlib
-        # The x axis will be the number of clusters you used
-        # and the y axis will be the "goodness of fit".
-        # Use the `.inertia_`
-
-        # TODO make sure that 10 is a stable `n_init` value to use.
-        # If you increase it and notice that the cluster sizes change,
-        # then consider making this another experimental parameter to pass
-        # to this function
 
         # Set up kmeans by weighting words by the number of times it appeared
         # in the corpus
@@ -89,17 +72,25 @@ def get_main_topics(filename, n_clusters, embedding_size, norm_level):
             ])
         )
         centers = km.cluster_centers_
-        print(f'{centers.shape = }')
 
-        # Find closest words in corpus to the centers
-        closest_corpus_words = get_closest_words_to_centers(
-            corpuswords, corpus_embeddings, centers, norm_level, True
-        )
-        closest_glove_words = get_closest_words_to_centers(
-            glovewords, glove_embeddings, centers, norm_level, False
-        )
+        # Calculate averaged distances
+        distances = []
+        for center in centers:
+            closest_words = get_closest_words_to_centers(
+                corpuswords, corpus_embeddings, center.reshape(1,-1), norm_level, True
+            )
+            closest_words = list(itertools.chain.from_iterable(closest_words))
+            closest_word_embeddings = np.array([
+                gloveword_to_embedding[word] for word in closest_words
+            ])
+            
+            
+            distances.append(np.mean(np.linalg.norm(closest_word_embeddings-center, axis=1)))
+        averaged_distance = np.mean(distances)
+        print("Kmeans inertia", km.inertia_)
+        km = None
 
-        return closest_corpus_words, closest_glove_words, km.inertia_
+        return averaged_distance
 
 def get_closest_subtopics(topic_list, filename, embedding_size):
     with open(filename, 'r', encoding='utf-8') as f:
